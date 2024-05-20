@@ -95,12 +95,6 @@ jobs:
         run: python -m tox
       - name: Generate coverage.xml
         run: python -m tox -e coverage
-      - name: Report coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./.tox/coverage.xml
-          name: ${{ matrix.os }}:${{ matrix.python-version }}
-          fail_ci_if_error: true
 
   other:
     runs-on: "ubuntu-latest"
