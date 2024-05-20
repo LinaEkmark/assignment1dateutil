@@ -29,6 +29,8 @@ jobs:
         ]
         os: [ubuntu-latest, windows-latest, macos-latest]
         exclude:
+          - python-version: "3.5"
+            os: "windows-latest"
           - python-version: "2.7"
             os: "ubuntu-latest"
           - python-version: "2.7"
@@ -48,13 +50,24 @@ jobs:
         include:
           - python-version: "2.7"
             os: "ubuntu-20.04"
+            env:
+              PIP_TRUSTED_HOST: pypi.python.org,pypi.org,files.pythonhosted.org
           - python-version: "3.5"
             os: "ubuntu-20.04"
+            env:
+              PIP_TRUSTED_HOST: pypi.python.org,pypi.org,files.pythonhosted.org
           - python-version: "3.6"
             os: "ubuntu-20.04"
+            env:
+              PIP_TRUSTED_HOST: pypi.python.org,pypi.org,files.pythonhosted.org
+          - python-version: "3.5"
+            os: "windows-latest"
+            env:
+              PIP_TRUSTED_HOST: pypi.python.org,pypi.org,files.pythonhosted.org
     runs-on: ${{ matrix.os }}
     env:
       TOXENV: py
+      PIP_TRUSTED_HOST: pypi.python.org
     steps:
       - uses: actions/checkout@v3
       - if: ${{ matrix.python-version == '2.7' }}
