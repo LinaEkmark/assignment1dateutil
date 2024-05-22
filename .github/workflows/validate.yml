@@ -11,6 +11,7 @@ on:
 jobs:
   test:
     strategy:
+      fail-fast: false
       matrix:
         python-version: [
           "2.7",
@@ -28,11 +29,19 @@ jobs:
         ]
         os: [ubuntu-latest, windows-latest, macos-latest]
         exclude:
+          - python-version: "3.5"
+            os: "windows-latest"
           - python-version: "2.7"
             os: "ubuntu-latest"
           - python-version: "2.7"
             os: "windows-latest"
           - python-version: "2.7"
+            os: "macos-latest"
+          - python-version: "3.5"
+            os: "macos-latest"
+          - python-version: "3.6"
+            os: "macos-latest"
+          - python-version: "3.7"
             os: "macos-latest"
           - python-version: "3.5"
             os: "ubuntu-latest"
@@ -41,13 +50,24 @@ jobs:
         include:
           - python-version: "2.7"
             os: "ubuntu-20.04"
+            env:
+              PIP_TRUSTED_HOST: pypi.python.org,pypi.org,files.pythonhosted.org
           - python-version: "3.5"
             os: "ubuntu-20.04"
+            env:
+              PIP_TRUSTED_HOST: pypi.python.org,pypi.org,files.pythonhosted.org
           - python-version: "3.6"
             os: "ubuntu-20.04"
+            env:
+              PIP_TRUSTED_HOST: pypi.python.org,pypi.org,files.pythonhosted.org
+          - python-version: "3.5"
+            os: "windows-latest"
+            env:
+              PIP_TRUSTED_HOST: pypi.python.org,pypi.org,files.pythonhosted.org
     runs-on: ${{ matrix.os }}
     env:
       TOXENV: py
+      PIP_TRUSTED_HOST: pypi.python.org
     steps:
       - uses: actions/checkout@v3
       - if: ${{ matrix.python-version == '2.7' }}
@@ -62,31 +82,32 @@ jobs:
         with:
           python-version: ${{ matrix.python-version }}
           allow-prereleases: true
+      - name: Install lzip
+        run: sudo apt-get install lzip
+        if: startsWith(matrix.os, 'ubuntu')
+      - name: Install specific tzdata version
+        run: |
+          TZDATA_VERSION="2024a"
+          TMP_DIR=$(mktemp -d)
+          cd $TMP_DIR
+          curl --fail --location "https://data.iana.org/time-zones/releases/tzdb-${TZDATA_VERSION}.tar.lz" -o tzdb.tar.lz
+          tar --lzip -xf tzdb.tar.lz
+          cd tzdb-${TZDATA_VERSION}
+          sudo rm -rf /usr/share/zoneinfo
+          sudo make install DESTDIR=./tzdata \
+                            DATAFORM=main
+
+          ls tzdata
+          sudo mv ./tzdata/usr/share/zoneinfo/ /usr/share/zoneinfo
+
+          cat /usr/share/zoneinfo/tzdata.zi | head -n 1
+        if: startsWith(matrix.os, 'ubuntu')
       - name: Install dependencies
-        run: python -m pip install -U tox six
-      - name: Install zic (Windows)
-        run: |
-          curl https://get.enterprisedb.com/postgresql/postgresql-9.5.21-2-windows-x64-binaries.zip --output $env:GITHUB_WORKSPACE\postgresql9.5.21.zip
-          unzip -oq $env:GITHUB_WORKSPACE\postgresql9.5.21.zip -d .postgresql
-        if: runner.os == 'Windows'
-      - name: Run updatezinfo.py (Windows)
-        run: |
-          $env:Path += ";$env:GITHUB_WORKSPACE\.postgresql\pgsql\bin"
-          ci_tools/retry.bat python updatezinfo.py
-        if: runner.os == 'Windows'
-      - name: Run updatezinfo.py (Unix)
-        run: ./ci_tools/retry.sh python updatezinfo.py
-        if: runner.os != 'Windows'
+        run: python -m pip install -U tox
       - name: Run tox
         run: python -m tox
       - name: Generate coverage.xml
         run: python -m tox -e coverage
-      - name: Report coverage to Codecov
-        uses: codecov/codecov-action@v3
-        with:
-          file: ./.tox/coverage.xml
-          name: ${{ matrix.os }}:${{ matrix.python-version }}
-          fail_ci_if_error: true
 
   other:
     runs-on: "ubuntu-latest"
@@ -123,7 +144,7 @@ jobs:
         with:
           options: "--check --diff --color --isort"
           src: "."
-          version: "~=1.7.1"
+          version: "1.7.2"
 
   build-dist:
     runs-on: ubuntu-latest
