@@ -209,23 +209,23 @@ class rrulebase(object):
                 last = i
         return last
 
-    def after(self, dt, inc=False):
-        """ Returns the first recurrence after the given datetime instance. The
-            inc keyword defines what happens if dt is an occurrence. With
-            inc=True, if dt itself is an occurrence, it will be returned.  """
-        if self._cache_complete:
-            gen = self._cache
-        else:
-            gen = self
-        if inc:
-            for i in gen:
-                if i >= dt:
-                    return i
-        else:
-            for i in gen:
-                if i > dt:
-                    return i
-        return None
+def after(self, dt, inc=False):
+    """ Returns the first recurrence after the given datetime instance. The
+        inc keyword defines what happens if dt is an occurrence. With
+        inc=True, if dt itself is an occurrence, it will be returned. """
+    
+    # Select the generator based on cache completeness
+    gen = self._cache if self._cache_complete else self
+
+    # Define comparison logic based on 'inc'
+    comparator = (lambda x: x >= dt) if inc else (lambda x: x > dt)
+
+    # Single loop with unified logic
+    for i in gen:
+        if comparator(i):
+            return i
+    return None
+
 
     def xafter(self, dt, count=None, inc=False):
         """
